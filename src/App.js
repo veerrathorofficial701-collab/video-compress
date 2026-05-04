@@ -1,19 +1,18 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+import { AuthProvider } from './context/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './components/HomePage';
 
-function App() {
+export default function App() {
   return (
-    <div className="App">
-      <Header />
-      <main className="App-main">
-        <HomePage />
-      </main>
-      <Footer />
-    </div>
+    <AuthProvider>
+      <div className="App">
+        <Header />
+        <main className="App-main"><HomePage /></main>
+        <Footer />
+      </div>
+    </AuthProvider>
   );
 }
-
-export default App;
