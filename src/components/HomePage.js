@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { toBlobURL } from '@ffmpeg/util';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const VIDEO_QUALITY = [
-  { label: 'High Quality', desc: '~30% smaller', crf: 28, icon: '🏆' },
-  { label: 'Balanced',     desc: '~60% smaller', crf: 35, icon: '⚖️' },
-  { label: 'Small Size',   desc: '~80% smaller', crf: 42, icon: '💾' },
+  { label: 'High Quality', desc: '~30% smaller', crf: 28, scale: null,  icon: '🏆' },
+  { label: 'Balanced',     desc: '~60% smaller', crf: 33, scale: 1280,  icon: '⚖️' },
+  { label: 'Small Size',   desc: '~80% smaller', crf: 38, scale: 854,   icon: '💾' },
 ];
 const IMAGE_QUALITY = [
   { label: 'High Quality', desc: '~40% smaller', q: 0.8, icon: '🏆' },
@@ -144,7 +144,8 @@ export default function HomePage() {
     try {
       if (!ffmpegRef.current) {
         const ffmpeg = new FFmpeg();
-        const base = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+        // Use jsDelivr CDN — faster and more reliable than unpkg
+        const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
         await ffmpeg.load({
           coreURL: await toBlobURL(`${base}/ffmpeg-core.js`,   'text/javascript'),
           wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
@@ -155,27 +156,70 @@ export default function HomePage() {
       setVStatus('compressing');
       ffmpeg.on('progress', ({ progress: p }) => setVProgress(Math.round(Math.max(0, Math.min(100, p * 100)))));
 
-      const ext = file.name.split('.').pop().toLowerCase();
+      const ext     = file.name.split('.').pop().toLowerCase();
       const inName  = `input.${ext}`;
       const outName = `output.${vFormat}`;
-      await ffmpeg.writeFile(inName, await fetchFile(file));
 
-      const crf = VIDEO_QUALITY[vQuality].crf;
+      // Write file directly from ArrayBuffer — avoids double memory allocation
+      const buf = await file.arrayBuffer();
+      await ffmpeg.writeFile(inName, new Uint8Array(buf));
+
+      const { crf, scale } = VIDEO_QUALITY[vQuality];
+
+      // Scale filter: only apply when a target width is set
+      const scaleFilter = scale ? `scale=${scale}:-2` : null;
+
       let args;
       if (vCustomMB && parseFloat(vCustomMB) > 0) {
-        const targetBits  = parseFloat(vCustomMB) * 8 * 1024 * 1024;
-        const dur         = vDuration || 60;
+        const targetBits   = parseFloat(vCustomMB) * 8 * 1024 * 1024;
+        const dur          = vDuration || 60;
         const videoBitrate = Math.max(100, Math.floor((targetBits / dur) * 0.9 / 1000));
-        args = ['-i', inName, '-c:v', 'libx264', '-b:v', `${videoBitrate}k`, '-preset', 'fast', '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', outName];
+        args = [
+          '-i', inName,
+          '-c:v', 'libx264',
+          '-b:v', `${videoBitrate}k`,
+          '-preset', 'ultrafast',   // fastest encode
+          '-threads', '0',          // use all CPU cores
+          '-c:a', 'aac', '-b:a', '64k',
+          '-movflags', '+faststart',
+          outName,
+        ];
       } else if (vFormat === 'webm') {
-        args = ['-i', inName, '-c:v', 'libvpx-vp9', '-crf', String(crf), '-b:v', '0', '-c:a', 'libopus', outName];
+        // VP9 realtime mode — dramatically faster than default
+        args = [
+          '-i', inName,
+          ...(scaleFilter ? ['-vf', scaleFilter] : []),
+          '-c:v', 'libvpx-vp9',
+          '-crf', String(crf),
+          '-b:v', '0',
+          '-deadline', 'realtime',  // fastest VP9 mode
+          '-cpu-used', '8',         // max speed
+          '-threads', '0',
+          '-c:a', 'libopus',
+          outName,
+        ];
       } else {
-        args = ['-i', inName, '-c:v', 'libx264', '-crf', String(crf), '-preset', 'fast', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', outName];
+        args = [
+          '-i', inName,
+          ...(scaleFilter ? ['-vf', scaleFilter] : []),
+          '-c:v', 'libx264',
+          '-crf', String(crf),
+          '-preset', 'ultrafast',   // fastest encode
+          '-threads', '0',          // use all CPU cores
+          '-c:a', 'aac', '-b:a', '128k',
+          '-movflags', '+faststart',
+          outName,
+        ];
       }
 
       await ffmpeg.exec(args);
       const data = await ffmpeg.readFile(outName);
       const blob = new Blob([data.buffer], { type: `video/${vFormat}` });
+
+      // Clean up FFmpeg virtual FS to free memory
+      try { await ffmpeg.deleteFile(inName); } catch (_) {}
+      try { await ffmpeg.deleteFile(outName); } catch (_) {}
+
       setVOutSize(blob.size);
       setVOutput(URL.createObjectURL(blob));
       setVStatus('done'); setVProgress(100);
