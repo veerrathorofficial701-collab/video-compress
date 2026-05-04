@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import CompressorPage from './CompressorPage';
+import ImageCompressorPage from './ImageCompressorPage';
 
 const brands = [
   { name: 'YouTube', emoji: '▶️' },
@@ -45,13 +47,49 @@ const faqs = [
   { q: 'Will compression reduce my video quality?', a: 'Our AI engine intelligently balances size and quality. You can also choose your preferred quality level.' },
 ];
 
-function HomePage() {
-  const [dragging, setDragging] = useState(false);
-  const [openFaq, setOpenFaq] = useState(null);
+const VIDEO_FORMATS = ['mp4', 'webm', 'mov', 'avi'];
+const IMAGE_FORMATS = ['jpeg', 'png', 'webp'];
+const QUALITY_LABELS = ['High Quality', 'Balanced', 'Small Size'];
 
-  const handleDragOver = (e) => { e.preventDefault(); setDragging(true); };
+function HomePage() {
+  const [dragging, setDragging]       = useState(false);
+  const [openFaq, setOpenFaq]         = useState(null);
+  const [file, setFile]               = useState(null);
+  const [tab, setTab]                 = useState('video');
+  // option panel state
+  const [activeOption, setActiveOption] = useState(null); // null | 'quality' | 'size' | 'format'
+  const [quality, setQuality]           = useState(1);    // 0=High 1=Balanced 2=Small
+  const [customSizeMB, setCustomSizeMB] = useState('');
+  const [convertFormat, setConvertFormat] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const isImage = (f) => f && f.type.startsWith('image/');
+  const isVideo = (f) => f && f.type.startsWith('video/');
+
+  const toggleOption = (opt) => setActiveOption(prev => prev === opt ? null : opt);
+
+  const handleDragOver  = (e) => { e.preventDefault(); setDragging(true); };
   const handleDragLeave = () => setDragging(false);
-  const handleDrop = (e) => { e.preventDefault(); setDragging(false); };
+  const handleDrop      = (e) => {
+    e.preventDefault(); setDragging(false);
+    const dropped = e.dataTransfer.files[0];
+    if (!dropped) return;
+    if (tab === 'video' && dropped.type.startsWith('video/')) setFile(dropped);
+    else if (tab === 'image' && dropped.type.startsWith('image/')) setFile(dropped);
+  };
+  const handleFileChange = (e) => {
+    const picked = e.target.files[0];
+    if (picked) setFile(picked);
+  };
+
+  const settings = {
+    quality,
+    customSizeMB: customSizeMB ? parseFloat(customSizeMB) : null,
+    convertFormat,
+  };
+
+  if (file && isVideo(file)) return <CompressorPage file={file} onBack={() => setFile(null)} settings={settings} />;
+  if (file && isImage(file)) return <ImageCompressorPage file={file} onBack={() => setFile(null)} settings={settings} />;
 
   return (
     <div className="homepage">
@@ -62,25 +100,41 @@ function HomePage() {
           <div className="row">
             <div className="col-md-8 col-md-offset-2 text-center">
               <span className="hero-badge">🤖 AI-Powered Compression</span>
-              <h1 className="hero-title">Compress Videos Without Losing Quality</h1>
-              <p className="hero-sub">Reduce video file sizes by up to 90% in seconds. Free, fast, and secure — no installation needed.</p>
+              <h1 className="hero-title">Compress Videos & Images Without Losing Quality</h1>
+              <p className="hero-sub">Reduce file sizes by up to 90% in seconds. Free, fast, and secure — no installation needed.</p>
+
+              <div className="upload-tabs">
+                <button className={`upload-tab${tab === 'video' ? ' active' : ''}`} onClick={() => { setTab('video'); setFile(null); }}>
+                  🎬 Video
+                </button>
+                <button className={`upload-tab${tab === 'image' ? ' active' : ''}`} onClick={() => { setTab('image'); setFile(null); }}>
+                  🖼️ Image
+                </button>
+              </div>
+
               <div
                 className={`upload-box${dragging ? ' dragging' : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                <div className="upload-icon">🎬</div>
-                <p className="upload-title">Drag & drop your video here</p>
+                <div className="upload-icon">{tab === 'video' ? '🎬' : '🖼️'}</div>
+                <p className="upload-title">Drag & drop your {tab} here</p>
                 <p className="upload-sub">or</p>
                 <label className="btn-upload" htmlFor="file-input">Browse Files</label>
-                <input id="file-input" type="file" accept="video/*" style={{ display: 'none' }} />
-                <p className="upload-formats">Supports MP4, MOV, AVI, MKV, WebM, FLV and 35+ more</p>
-                <div className="upload-options">
-                  <span className="option-tag">🎯 Auto Quality</span>
-                  <span className="option-tag">📐 Custom Size</span>
-                  <span className="option-tag">🔄 Format Convert</span>
-                </div>
+                <input
+                  id="file-input"
+                  ref={fileInputRef}
+                  type="file"
+                  accept={tab === 'video' ? 'video/*' : 'image/*'}
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                />
+                {tab === 'video'
+                  ? <p className="upload-formats">Supports MP4, MOV, AVI, MKV, WebM, FLV and 35+ more</p>
+                  : <p className="upload-formats">Supports JPEG, PNG, WebP, GIF, BMP and more</p>
+                }
+
               </div>
               <p className="hero-note">✅ No sign-up required &nbsp;·&nbsp; 🔒 Files deleted after 1 hour &nbsp;·&nbsp; ⚡ Results in seconds</p>
             </div>
@@ -97,27 +151,6 @@ function HomePage() {
               <div key={b.name} className="brand-item">
                 <span className="brand-emoji">{b.emoji}</span>
                 <span className="brand-name">{b.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section className="section features-section">
-        <div className="container">
-          <div className="section-header text-center">
-            <h2>Everything You Need</h2>
-            <p>Powerful features built for creators, developers, and everyday users.</p>
-          </div>
-          <div className="row">
-            {features.map((f) => (
-              <div key={f.title} className="col-md-4 col-sm-6">
-                <div className="feature-card">
-                  <div className="feature-icon">{f.icon}</div>
-                  <h4>{f.title}</h4>
-                  <p>{f.desc}</p>
-                </div>
               </div>
             ))}
           </div>
@@ -161,33 +194,6 @@ function HomePage() {
                   <div className="usecase-icon">{u.icon}</div>
                   <h5>{u.title}</h5>
                   <p>{u.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section className="section testimonials-section">
-        <div className="container">
-          <div className="section-header text-center">
-            <h2>What Our Users Say</h2>
-            <p>Thousands of creators trust VideoCompress AI every day.</p>
-          </div>
-          <div className="row">
-            {testimonials.map((t) => (
-              <div key={t.name} className="col-md-4">
-                <div className="testimonial-card">
-                  <p className="testimonial-text">"{t.text}"</p>
-                  <div className="testimonial-author">
-                    <span className="testimonial-avatar">{t.avatar}</span>
-                    <div>
-                      <strong>{t.name}</strong>
-                      <span>{t.role}</span>
-                    </div>
-                  </div>
-                  <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
                 </div>
               </div>
             ))}
