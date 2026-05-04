@@ -241,7 +241,7 @@ export default function HomePage() {
       <section className="hero-section">
         <div className="container">
           <div className="row">
-            <div className="col-md-8 col-md-offset-2 text-center">
+            <div className="col-md-8 offset-md-2 text-center">
               <span className="hero-badge">🤖 AI-Powered Compression</span>
               <h1 className="hero-title">Compress Videos & Images Without Losing Quality</h1>
               <p className="hero-sub">Reduce file sizes by up to 90% in seconds. Free, fast, and secure — no installation needed.</p>
@@ -539,7 +539,7 @@ export default function HomePage() {
             <p>Same visual quality. Dramatically smaller file size.</p>
           </div>
           <div className="row">
-            <div className="col-md-8 col-md-offset-2">
+            <div className="col-md-8 offset-md-2">
               <div className="comparison-box">
                 <div className="comparison-side before">
                   <div className="comparison-label">Before</div>
@@ -580,7 +580,7 @@ export default function HomePage() {
             <p>Got questions? We've got answers.</p>
           </div>
           <div className="row">
-            <div className="col-md-8 col-md-offset-2">
+            <div className="col-md-8 offset-md-2">
               {faqs.map((f, i) => (
                 <div key={i} className={`faq-item${openFaq === i ? ' open' : ''}`}>
                   <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
