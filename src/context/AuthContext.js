@@ -6,7 +6,7 @@ import {
   signInWithPopup,
   signOut as firebaseSignOut,
   updateProfile,
-} from 'firebase/auth';
+} from '@firebase/auth';
 import { auth, googleProvider } from '../firebase';
 
 const AuthContext = createContext(null);

@@ -1,5 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { initializeApp } from '@firebase/app';
+import { getAuth, GoogleAuthProvider } from '@firebase/auth';
 
 // Replace these values with your own Firebase project config.
 // Go to https://console.firebase.google.com → your project → Project Settings → Your apps → Web app
