@@ -325,7 +325,9 @@ export default function HomePage() {
                 <div className="inline-compressor" ref={compressorRef}>
                   <div className="row">
                     {/* Left: preview + file info */}
-                    <div className="col-md-5">
+                    <div className="col-md-12">
+                      <div className='row'>
+                      <div className='col-md-6'>
                       <div className="comp-card">
                         <div className="comp-card-header">
                           <h4 className="comp-card-title">{isVideo ? '🎬 Source Video' : '🖼️ Source Image'}</h4>
@@ -341,8 +343,12 @@ export default function HomePage() {
                         {isVideo && <video src={previewUrl} className="media-preview" controls muted />}
                         {isImage && <img src={previewUrl} alt="preview" className="media-preview" />}
                       </div>
+                      </div>
+                      
+                      
 
                       {/* Settings */}
+                      <div className="col-md-6">
                       <div className="comp-card">
                         <h4 className="comp-card-title">⚙️ Settings</h4>
 
@@ -428,10 +434,15 @@ export default function HomePage() {
                           </>
                         )}
                       </div>
+                      </div>
+
+                      
+                    </div>
                     </div>
 
+
                     {/* Right: progress + result */}
-                    <div className="col-md-7">
+                    <div className="col-md-12">
                       {/* Video: loading/progress */}
                       {isVideo && (vStatus === 'loading' || vStatus === 'compressing') && (
                         <div className="comp-card progress-card">
@@ -513,21 +524,6 @@ export default function HomePage() {
 
               {!file && <p className="hero-note">✅ No sign-up required &nbsp;·&nbsp; 🔒 Files never uploaded &nbsp;·&nbsp; ⚡ Results in seconds</p>}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── BRANDS ── */}
-      <section className="brands-section">
-        <div className="container">
-          <p className="brands-label">Trusted by teams at</p>
-          <div className="brands-row">
-            {brands.map(b => (
-              <div key={b} className="brand-item">
-                <span className="brand-emoji">{brandEmoji[b]}</span>
-                <span className="brand-name">{b}</span>
-              </div>
-            ))}
           </div>
         </div>
       </section>
